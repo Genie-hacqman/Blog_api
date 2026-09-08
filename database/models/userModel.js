@@ -33,3 +33,5 @@ const User = sequelize.define('User', {
     
       // Automatically adds createdAt and updatedAt fields
 });
+
+export default User;
