@@ -1,7 +1,6 @@
 import user from "../database/models/userModel.js";
 
 // find user by id
-
 export const findUserById = async (id) => {
     return await user.findByPk(id);
 };
@@ -15,4 +14,9 @@ export const findUserByUsername = async (username) => {
 export const findUserByEmail = async (email) => {
     return await user.findOne({ where: { email } });
 }
+
+
+export const createUser = async (firstname, lastName, username, email, password) => {
+    return await user.create({ firstname, lastName, username, email, password });
+};
 
