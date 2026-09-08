@@ -30,8 +30,6 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    
-      // Automatically adds createdAt and updatedAt fields
 });
 
 export default User;

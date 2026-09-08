@@ -11,5 +11,4 @@ registerRouter.post('/register', (req, res) => {
 	})
 })
 
-
 export default registerRouter;
