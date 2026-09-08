@@ -7,7 +7,6 @@ import { createApp } from './app.js';
 //initialize express app
 const app = createApp();
 
-
 const PORT = process.env.PORT || 5000;
 
 // START SERVER
@@ -21,7 +20,6 @@ const startServer = async () => {
     } catch (error) {
     console.error("Unable to connect to the database:", error); 
     }
-
 }
 
 startServer();
