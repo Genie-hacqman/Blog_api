@@ -24,3 +24,9 @@ export const registerUser = async ({firstName, lastName, username, email, passwo
         throw new Error("Username is already taken");
     }
 }
+
+
+// create a new user
+    const newUser = await createUser({firstName, lastName, username, email, password});
+    return sanitizeUser(newUser);
+
