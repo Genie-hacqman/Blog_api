@@ -1,14 +1,10 @@
-import express from "express";
+import { Router } from "express";
 import { register } from "../controllers/userContoller.js";
 
-const registerRouter = express.Router();
+const router = Router();
 
 // route to register a new user
-registerRouter.post('/register', (req, res) => {
-	res.status(200).json({
-		success: true,
-		message: "Register route is working"
-	})
-})
 
-export default registerRouter;
+router.post("/register", register);
+
+export default router;

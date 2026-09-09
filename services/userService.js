@@ -8,17 +8,17 @@ const sanitizeUser = (user) => ({
     id: user.id,
     firstName: user.firstName,
     lastName: user.lastName,
-    username: user.username,
+    userName: user.username,
     email: user.email,
     createAt: user.createdAt,
 });
 
 // register a new user
-export const registerUser = async ({firstName, lastName, username, email, password}) =>  {
+export const registerUser = async ({firstName, lastName, userName, email, password}) =>  {
 
-// check if user with the same email or username already exists
+// check if user with the same email or userName already exists
     const isEmailTaken = await findUserByEmail(email);
-    const isUsernameTaken = await findUserByUsername(username);
+    const isUsernameTaken = await findUserByUsername(userName);
     if (isEmailTaken) {
         throw new Error("Email is already taken");
     }
@@ -34,7 +34,7 @@ const SALT_ROUNDS = 10;
 
 
 // create a new user
-    const newUser = await createUser({firstName, lastName, username, email, password:hashedPassword});
+    const newUser = await createUser({firstName, lastName, username: userName, email, password:hashedPassword});
     return sanitizeUser(newUser);
 };
 
