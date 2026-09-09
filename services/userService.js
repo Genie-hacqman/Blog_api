@@ -8,7 +8,7 @@ const sanitizeUser = (user) => ({
     id: user.id,
     firstName: user.firstName,
     lastName: user.lastName,
-    userName: user.userName,
+    userName: user.username,
     email: user.email,
     createAt: user.createdAt,
 });
@@ -34,7 +34,7 @@ const SALT_ROUNDS = 10;
 
 
 // create a new user
-    const newUser = await createUser({firstName, lastName, userName, email, password:hashedPassword});
+    const newUser = await createUser({firstName, lastName, username: userName, email, password:hashedPassword});
     return sanitizeUser(newUser);
 };
 
