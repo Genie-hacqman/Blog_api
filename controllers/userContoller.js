@@ -1,7 +1,6 @@
 import {registerUser} from "../services/userService.js";
 import { createUserSchema } from "../schemas/userSchemas.js";
 
-
 // controller function to handle user registration
 export const register = async (req, res) => {
 

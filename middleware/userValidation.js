@@ -6,7 +6,6 @@ export const validate = (schema) => (req, res, next) => {
             return res.status(400).json({ errors: result.error.issue[0].message});
         }
 
-
         req.body = result.data;
         
         next();
