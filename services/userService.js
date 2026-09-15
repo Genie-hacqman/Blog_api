@@ -48,7 +48,7 @@ export const loginUser = async ({email, password}) => {
     const user = await findUserByEmail(email);
 
     if (!user || !await bcrypt.compare(password, user.password)) {
-        throw new Error("invalid email or password");
+        throw new Error("Invalid email or password");
 
     }
 
@@ -60,3 +60,5 @@ export const loginUser = async ({email, password}) => {
 );
     return {user: sanitizeUser(user), token};
 };
+
+// logout a user
