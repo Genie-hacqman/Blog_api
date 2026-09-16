@@ -31,6 +31,8 @@ export const login = async (req, res) => {
     }
 };
 
+
+
 // controller for handling user logout
 export const logout = async (req, res) => {
     try {
