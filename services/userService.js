@@ -60,5 +60,3 @@ export const loginUser = async ({email, password}) => {
 );
     return {user: sanitizeUser(user), token};
 };
-
-// logout a user
