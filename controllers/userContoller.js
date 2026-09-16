@@ -1,5 +1,6 @@
 import { registerUser, loginUser } from "../services/userService.js";
 import { createUserSchema } from "../schemas/userSchemas.js";
+import { revokeToken } from "../utils/tokenStore.js";
 
 // controller function to handle user registration
 export const register = async (req, res) => {
@@ -33,6 +34,7 @@ export const login = async (req, res) => {
 // controller for handling user logout
 export const logout = async (req, res) => {
     try {
+        revokeToken(req.token);
         return res.status(200).json({ message: "User logged out successfully" });
     } catch (error) {
         return res.status(500).json({ error: error.message });
