@@ -10,8 +10,10 @@ export const register = async (req, res) => {
         return res.status(201).json({ message: "User created successfully", user: createdUser });
 
     } catch (error) {
-
-        return res.status(500).json({ error: error.message });
+        if (error.message === "Email is already taken" || error.message === "Username is already taken") {
+            return res.status(409).json({ error: error.message });
+        }
+        return res.status(500).json({ error: "Something went wrong" });
     }
 };
 
@@ -26,7 +28,7 @@ export const login = async (req, res) => {
         if (error.message === "Invalid email or password") {
             return res.status(401).json({ error: error.message });
         }
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: "Something went wrong" });
 
     }
 };
@@ -39,6 +41,6 @@ export const logout = async (req, res) => {
         revokeToken(req.token);
         return res.status(200).json({ message: "User logged out successfully" });
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: "Something went wrong" });
     }
 };
