@@ -3,11 +3,12 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // DB environment variables
-const {DB_NAME, DB_USER, DB_PASSWORD, DB_HOST,} = process.env;
+const {DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT} = process.env;
 
 // create a new Sequelize instance with the database connection details
 const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
     host: DB_HOST,
+    port: DB_PORT || 3306,
     dialect: "mysql",
     
 });
