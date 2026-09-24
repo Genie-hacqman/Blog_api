@@ -22,7 +22,7 @@ The React + Vite frontend lives in a separate sibling repo, `../Blog-frontend`, 
 
 Config is loaded via `dotenv` from a `.env` file (see `server.js` and `database/dbconnection.js`). Required variables, inferred from usage in code:
 - `PORT` — server port (defaults to 5000 if unset).
-- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` — MySQL connection details passed straight into `new Sequelize(...)`.
+- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` (defaults to 3306) — MySQL connection details passed straight into `new Sequelize(...)`.
 - `JWT_SECRET` — used to sign/verify JWTs in `services/userService.js` and `middleware/authMiddleware.js`.
 - `CLIENT_ORIGIN` — comma-separated browser origins allowed by CORS in `app.js` (defaults to `http://localhost:5173`, the Vite dev server).
 
