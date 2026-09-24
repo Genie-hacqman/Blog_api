@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a Node.js/Express blog API using MySQL via Sequelize. Only user auth (register/login/logout) is currently implemented, under `/api/users`. Post CRUD (`posts-crud-user-story.md`) is a planned feature, not yet built — there is no post model, repository, service, controller, or route yet. When implementing it, follow the existing user-flow layering described below.
+This is a Node.js/Express blog API using MySQL via Sequelize. It implements user auth (register/login/logout) under `/api/users` and post CRUD under `/api/posts` (create supports an optional `Idempotency-Key` header via `middleware/idempotency.js`). New resources should follow the existing layering described below.
+
+The React + Vite frontend lives in a separate sibling repo, `../Blog-frontend`, and talks to this API over CORS.
 
 ## Commands
 
@@ -20,10 +22,11 @@ This is a Node.js/Express blog API using MySQL via Sequelize. Only user auth (re
 
 Config is loaded via `dotenv` from a `.env` file (see `server.js` and `database/dbconnection.js`). Required variables, inferred from usage in code:
 - `PORT` — server port (defaults to 5000 if unset).
-- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` — MySQL connection details passed straight into `new Sequelize(...)`.
+- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` (defaults to 3306) — MySQL connection details passed straight into `new Sequelize(...)`.
 - `JWT_SECRET` — used to sign/verify JWTs in `services/userService.js` and `middleware/authMiddleware.js`.
+- `CLIENT_ORIGIN` — comma-separated browser origins allowed by CORS in `app.js` (defaults to `http://localhost:5173`, the Vite dev server).
 
-`.env.example` exists but is currently empty; update it when adding new required env vars.
+Keep `.env.example` in sync when adding new required env vars.
 
 ## Architecture
 
