@@ -3,7 +3,7 @@ dotenv.config()
 import sequelize from './database/dbconnection.js';
 import app from './app.js';
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3030;
 
 // START SERVER
 const startServer = async () => {
