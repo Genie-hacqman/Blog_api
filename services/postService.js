@@ -16,16 +16,34 @@ const sanitizePost = (post) => ({
     updatedAt: post.updatedAt,
 });
 
+const EXCERPT_LENGTH = 320;
+const WORDS_PER_MINUTE = 225;
+
+// a public preview of a post: enough to tease the story without giving away the full content
+const summarizePost = (post) => {
+    const content = post.content ?? "";
+    const words = content.trim().split(/\s+/).filter(Boolean).length;
+    return {
+        id: post.id,
+        title: post.title,
+        excerpt: content.length > EXCERPT_LENGTH ? `${content.slice(0, EXCERPT_LENGTH).trimEnd()}…` : content,
+        readingTime: Math.max(1, Math.round(words / WORDS_PER_MINUTE)),
+        author: post.author ? { id: post.author.id, username: post.author.username } : null,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+    };
+};
+
 // create a new post
 export const createPost = async (userId, { title, content }) => {
     const post = await createPostRecord({ title, content, userId });
     return sanitizePost(post);
 };
 
-// get all posts
+// get all posts as previews
 export const getAllPosts = async () => {
     const posts = await findAllPosts();
-    return posts.map(sanitizePost);
+    return posts.map(summarizePost);
 };
 
 // get a single post by id

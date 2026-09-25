@@ -10,11 +10,11 @@ const router = express.Router();
 // route to create a new post
 router.post("/", authenticate, validate(createPostSchema), idempotent(), createPost);
 
-// route to get all posts
+// route to get all posts (public: returns previews, not full content)
 router.get("/", getAllPosts);
 
-// route to get a single post by id
-router.get("/:id", getPostById);
+// route to get a single post by id (full story requires login)
+router.get("/:id", authenticate, getPostById);
 
 // route to update a post
 router.patch("/:id", authenticate, validate(updatePostSchema), updatePost);
