@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a Node.js/Express blog API using MySQL via Sequelize. It implements user auth (register/login/logout) under `/api/users` and post CRUD under `/api/posts` (create supports an optional `Idempotency-Key` header via `middleware/idempotency.js`). New resources should follow the existing layering described below.
+This is a Node.js/Express blog API using MySQL via Sequelize. It implements user auth (register/login/logout) under `/api/users` and post CRUD under `/api/posts` (create supports an optional `Idempotency-Key` header via `middleware/idempotency.js`). Listing posts (`GET /api/posts`) is public but returns only previews (`excerpt` + `readingTime`, no `content`); reading a full post (`GET /api/posts/:id`) requires auth, so the full story is only available to signed-in users. New resources should follow the existing layering described below.
 
 The React + Vite frontend lives in a separate sibling repo, `../Blog-frontend`, and talks to this API over CORS.
 
@@ -12,7 +12,7 @@ The React + Vite frontend lives in a separate sibling repo, `../Blog-frontend`, 
 
 - `npm run dev` — start with nodemon (auto-reload), used for local development.
 - `npm start` — start with plain `node server.js`.
-- `npm test` — integration tests via node's built-in test runner + `supertest`, in `tests/`. Requires a `blog_db_test` MySQL database (`CREATE DATABASE blog_db_test;`); the script passes `DB_NAME=blog_db_test` inline, which wins over `.env` because `dotenv.config()` does not overwrite already-set vars. `--test-concurrency=1` is required, since `node --test` otherwise runs files in parallel processes that would reset the shared test database out from under each other.
+- `npm test` — integration tests via node's built-in test runner + `supertest`, in `tests/`. Requires a `blog_db_test` MySQL database (`CREATE DATABASE blog_db_test;`); the script passes `DB_NAME=blog_db_test` inline, which wins over `.env` because `dotenv.config()` does not overwrite already-set vars. `resetDatabase()` in `tests/helpers.js` refuses to run unless `DB_HOST` is `localhost`/`127.0.0.1`, because `.env` points at the deployed Aiven database; pass local connection vars inline, e.g. `DB_HOST=localhost DB_PORT=3306 DB_USER=root DB_PASSWORD=... npm test`. `--test-concurrency=1` is required, since `node --test` otherwise runs files in parallel processes that would reset the shared test database out from under each other.
 - Tests set `NODE_ENV=test`, which makes the rate limiters in `middleware/rateLimiter.js` skip (5 logins / 15 min cannot support a suite, and the window does not reset between runs). The limiters themselves are therefore covered by manual `request.http` checks, not automated tests.
 - `tests/helpers.js` resets state with `sequelize.sync()` + truncate rather than `sync({ force: true })`: dropping tables races the fire-and-forget `Model.sync()` calls the model files make at import time, which surfaces as "table doesn't exist" unhandled rejections.
 - No lint config or CI currently exists in this repo.
