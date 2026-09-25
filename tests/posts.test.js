@@ -5,6 +5,8 @@ import { app, request, registerAndLogin, resetDatabase, closeDatabase } from "./
 const createPost = (token, body = { title: "A title", content: "Some content" }) =>
     request(app).post("/api/posts").set("Authorization", `Bearer ${token}`).send(body);
 
+const getPost = (id, token) => request(app).get(`/api/posts/${id}`).set("Authorization", `Bearer ${token}`);
+
 describe("posts", () => {
     let owner;
     let stranger;
@@ -58,33 +60,59 @@ describe("posts", () => {
         assert.deepEqual(response.body.posts, []);
     });
 
-    it("lists posts without requiring a token", async () => {
+    it("lists post previews without requiring a token", async () => {
         await createPost(owner.token);
 
         const response = await request(app).get("/api/posts");
 
         assert.equal(response.status, 200);
         assert.equal(response.body.posts.length, 1);
+        const [preview] = response.body.posts;
+        assert.equal(preview.excerpt, "Some content");
+        assert.equal(preview.readingTime, 1);
+        assert.equal(preview.author.id, owner.user.id);
+        assert.ok(!("content" in preview));
     });
 
-    it("gets a single post by id without requiring a token", async () => {
+    it("cuts long content short in the list so the full story is not public", async () => {
+        const content = "word ".repeat(500).trim();
+        await createPost(owner.token, { title: "Long read", content });
+
+        const response = await request(app).get("/api/posts");
+        const [preview] = response.body.posts;
+
+        assert.ok(preview.excerpt.length < content.length);
+        assert.ok(preview.excerpt.endsWith("…"));
+        assert.equal(preview.readingTime, 2);
+    });
+
+    it("gets a single post with full content when logged in", async () => {
+        const created = await createPost(owner.token);
+
+        const response = await getPost(created.body.post.id, stranger.token);
+
+        assert.equal(response.status, 200);
+        assert.equal(response.body.post.id, created.body.post.id);
+        assert.equal(response.body.post.content, "Some content");
+    });
+
+    it("rejects reading a single post without a token", async () => {
         const created = await createPost(owner.token);
 
         const response = await request(app).get(`/api/posts/${created.body.post.id}`);
 
-        assert.equal(response.status, 200);
-        assert.equal(response.body.post.id, created.body.post.id);
+        assert.equal(response.status, 401);
     });
 
     it("returns 404 for a post id that does not exist", async () => {
-        const response = await request(app).get("/api/posts/999999");
+        const response = await getPost(999999, owner.token);
 
         assert.equal(response.status, 404);
         assert.equal(response.body.error, "Post not found");
     });
 
     it("returns 404 for a non-numeric post id", async () => {
-        const response = await request(app).get("/api/posts/abc");
+        const response = await getPost("abc", owner.token);
 
         assert.equal(response.status, 404);
     });
@@ -159,7 +187,7 @@ describe("posts", () => {
 
         assert.equal(response.status, 200);
 
-        const afterDelete = await request(app).get(`/api/posts/${created.body.post.id}`);
+        const afterDelete = await getPost(created.body.post.id, owner.token);
         const list = await request(app).get("/api/posts");
 
         assert.equal(afterDelete.status, 404);
