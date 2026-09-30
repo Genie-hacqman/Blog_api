@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a Node.js/Express blog API using MySQL via Sequelize. It implements user auth (register/login/logout) under `/api/users` and post CRUD under `/api/posts` (create supports an optional `Idempotency-Key` header via `middleware/idempotency.js`). Listing posts (`GET /api/posts`) is public but returns only previews (`excerpt` + `readingTime`, no `content`); reading a full post (`GET /api/posts/:id`) requires auth, so the full story is only available to signed-in users. New resources should follow the existing layering described below.
+This is a Node.js/Express blog API using MySQL via Sequelize. It implements user auth (register/login/logout) under `/api/users` and post CRUD under `/api/posts` (create supports an optional `Idempotency-Key` header via `middleware/idempotency.js`). Posts have a `status` of `draft` or `published` (defaults to `draft` on create); listing posts (`GET /api/posts`) is public, paginated (`?page`/`?limit`, defaulting to 10 and capped at 50 — see `parsePagination` in `postController.js`), only ever returns `published` posts, and each result is a preview (`excerpt` + `readingTime`, no `content`). Reading a full post (`GET /api/posts/:id`) requires auth; a `published` post is visible to any signed-in user, but a `draft` is only visible to its author (anyone else gets a 404, same as a nonexistent post, so drafts don't leak). New resources should follow the existing layering described below.
 
 The React + Vite frontend lives in a separate sibling repo, `../Blog-frontend`, and talks to this API over CORS.
 

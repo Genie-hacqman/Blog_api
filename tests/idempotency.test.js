@@ -2,7 +2,7 @@ import { after, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { app, request, registerAndLogin, resetDatabase, closeDatabase } from "./helpers.js";
 
-const body = { title: "Idempotent post", content: "Retries must not duplicate this." };
+const body = { title: "Idempotent post", content: "Retries must not duplicate this.", status: "published" };
 
 const createWithKey = (token, key, payload = body) =>
     request(app)
