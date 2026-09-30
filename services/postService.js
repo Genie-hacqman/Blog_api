@@ -11,6 +11,7 @@ const sanitizePost = (post) => ({
     id: post.id,
     title: post.title,
     content: post.content,
+    status: post.status,
     author: post.author ? { id: post.author.id, username: post.author.username } : null,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
@@ -35,21 +36,28 @@ const summarizePost = (post) => {
 };
 
 // create a new post
-export const createPost = async (userId, { title, content }) => {
-    const post = await createPostRecord({ title, content, userId });
+export const createPost = async (userId, { title, content, status }) => {
+    const post = await createPostRecord({ title, content, userId, status });
     return sanitizePost(post);
 };
 
-// get all posts as previews
-export const getAllPosts = async () => {
-    const posts = await findAllPosts();
-    return posts.map(summarizePost);
+// get published posts as previews, paginated
+export const getAllPosts = async ({ page, limit }) => {
+    const offset = (page - 1) * limit;
+    const { rows, count } = await findAllPosts({ status: "published", limit, offset });
+    return {
+        posts: rows.map(summarizePost),
+        pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) },
+    };
 };
 
-// get a single post by id
-export const getPostById = async (id) => {
+// get a single post by id; drafts are only visible to their author
+export const getPostById = async (id, requestingUserId) => {
     const post = await findPostById(id);
     if (!post) {
+        throw new Error("Post not found");
+    }
+    if (post.status === "draft" && post.userId !== requestingUserId) {
         throw new Error("Post not found");
     }
     return sanitizePost(post);

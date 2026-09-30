@@ -9,6 +9,16 @@ import {
 // check that a route param looks like a real post id before hitting the DB
 const isValidId = (id) => Number.isInteger(Number(id));
 
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 50;
+
+// parse page/limit query params into sane, bounded integers
+const parsePagination = (query) => {
+    const page = Math.max(1, parseInt(query.page, 10) || 1);
+    const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(query.limit, 10) || DEFAULT_LIMIT));
+    return { page, limit };
+};
+
 // controller function to handle post creation
 export const createPost = async (req, res) => {
     try {
@@ -22,8 +32,9 @@ export const createPost = async (req, res) => {
 // controller function to handle retrieving all posts
 export const getAllPosts = async (req, res) => {
     try {
-        const posts = await getAllPostsService();
-        return res.status(200).json({ message: "Posts retrieved successfully", posts });
+        const { page, limit } = parsePagination(req.query);
+        const { posts, pagination } = await getAllPostsService({ page, limit });
+        return res.status(200).json({ message: "Posts retrieved successfully", posts, pagination });
     } catch (error) {
         return res.status(500).json({ error: "Something went wrong" });
     }
@@ -35,7 +46,7 @@ export const getPostById = async (req, res) => {
         if (!isValidId(req.params.id)) {
             return res.status(404).json({ error: "Post not found" });
         }
-        const post = await getPostByIdService(req.params.id);
+        const post = await getPostByIdService(req.params.id, req.user.id);
         return res.status(200).json({ message: "Post retrieved successfully", post });
     } catch (error) {
         if (error.message === "Post not found") {

@@ -20,8 +20,13 @@ const Post = sequelize.define('Post', {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    status: {
+        type: DataTypes.ENUM('draft', 'published'),
+        allowNull: false,
+        defaultValue: 'draft',
+    },
 });
 
-Post.sync();
+Post.sync({ alter: true });
 
 export default Post;
