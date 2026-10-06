@@ -1,95 +1,107 @@
 import {
     createPost as createPostService,
+    deletePost as deletePostService,
     getAllPosts as getAllPostsService,
     getPostById as getPostByIdService,
+    getPostBySlug as getPostBySlugService,
+    listMyPosts as listMyPostsService,
+    listReviewQueue as listReviewQueueService,
     updatePost as updatePostService,
-    deletePost as deletePostService,
 } from "../services/postService.js";
+import { changePostStatus } from "../services/postStatusService.js";
+import { compareRevisions, getRevision, listRevisions, restoreRevision } from "../services/postRevisionService.js";
+import { compareQuerySchema, listMineQuerySchema } from "../schemas/postSchemas.js";
+import { postListQuerySchema } from "../schemas/taxonomySchemas.js";
+import { NotFoundError, ValidationError } from "../utils/AppError.js";
+import { parsePagination } from "../utils/pagination.js";
+import { requestContext } from "../utils/requestContext.js";
+import { sendSuccess } from "../utils/response.js";
 
-// check that a route param looks like a real post id before hitting the DB
-const isValidId = (id) => Number.isInteger(Number(id));
-
-const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 50;
-
-// parse page/limit query params into sane, bounded integers
-const parsePagination = (query) => {
-    const page = Math.max(1, parseInt(query.page, 10) || 1);
-    const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(query.limit, 10) || DEFAULT_LIMIT));
-    return { page, limit };
+// a route param must look like a real id before we hit the DB; anything else is simply "not found"
+const requireValidId = (id, what = "Post") => {
+    if (!/^\d+$/.test(String(id))) {
+        throw new NotFoundError(`${what} not found`);
+    }
+    return Number(id);
 };
 
-// controller function to handle post creation
+// anonymous visitors are null
+const viewer = (req) => req.user ?? null;
+
+const parseQuery = (schema, query) => {
+    const result = schema.safeParse(query);
+    if (!result.success) {
+        throw new ValidationError(result.error.issues[0].message);
+    }
+    return result.data;
+};
+
 export const createPost = async (req, res) => {
-    try {
-        const post = await createPostService(req.user.id, req.body);
-        return res.status(201).json({ message: "Post created successfully", post });
-    } catch (error) {
-        return res.status(500).json({ error: "Something went wrong" });
-    }
+    const post = await createPostService(req.user, req.body, requestContext(req));
+    return sendSuccess(res, 201, { post });
 };
 
-// controller function to handle retrieving all posts
 export const getAllPosts = async (req, res) => {
-    try {
-        const { page, limit } = parsePagination(req.query);
-        const { posts, pagination } = await getAllPostsService({ page, limit });
-        return res.status(200).json({ message: "Posts retrieved successfully", posts, pagination });
-    } catch (error) {
-        return res.status(500).json({ error: "Something went wrong" });
-    }
+    const { category, tag } = parseQuery(postListQuerySchema, req.query);
+    const { posts, pagination } = await getAllPostsService({ ...parsePagination(req.query), category, tag });
+    return sendSuccess(res, 200, { posts }, { pagination });
 };
 
-// controller function to handle retrieving a single post by id
+export const getMyPosts = async (req, res) => {
+    const { status } = parseQuery(listMineQuerySchema, req.query);
+    const { posts, pagination } = await listMyPostsService(req.user, { status, ...parsePagination(req.query) });
+    return sendSuccess(res, 200, { posts }, { pagination });
+};
+
+export const getReviewQueue = async (req, res) => {
+    const { posts, pagination } = await listReviewQueueService(parsePagination(req.query));
+    return sendSuccess(res, 200, { posts }, { pagination });
+};
+
 export const getPostById = async (req, res) => {
-    try {
-        if (!isValidId(req.params.id)) {
-            return res.status(404).json({ error: "Post not found" });
-        }
-        const post = await getPostByIdService(req.params.id, req.user.id);
-        return res.status(200).json({ message: "Post retrieved successfully", post });
-    } catch (error) {
-        if (error.message === "Post not found") {
-            return res.status(404).json({ error: error.message });
-        }
-        return res.status(500).json({ error: "Something went wrong" });
-    }
+    const post = await getPostByIdService(requireValidId(req.params.id), viewer(req));
+    return sendSuccess(res, 200, { post });
 };
 
-// controller function to handle updating a post
+export const getPostBySlug = async (req, res) => {
+    const post = await getPostBySlugService(req.params.slug, viewer(req));
+    return sendSuccess(res, 200, { post });
+};
+
 export const updatePost = async (req, res) => {
-    try {
-        if (!isValidId(req.params.id)) {
-            return res.status(404).json({ error: "Post not found" });
-        }
-        const post = await updatePostService(req.params.id, req.user.id, req.body);
-        return res.status(200).json({ message: "Post updated successfully", post });
-    } catch (error) {
-        if (error.message === "Post not found") {
-            return res.status(404).json({ error: error.message });
-        }
-        if (error.message === "Not authorized to update this post") {
-            return res.status(403).json({ error: error.message });
-        }
-        return res.status(500).json({ error: "Something went wrong" });
-    }
+    const post = await updatePostService(requireValidId(req.params.id), req.user, req.body);
+    return sendSuccess(res, 200, { post });
 };
 
-// controller function to handle deleting a post
+export const changeStatus = async (req, res) => {
+    const post = await changePostStatus(requireValidId(req.params.id), req.user, req.body, requestContext(req));
+    return sendSuccess(res, 200, { post });
+};
+
 export const deletePost = async (req, res) => {
-    try {
-        if (!isValidId(req.params.id)) {
-            return res.status(404).json({ error: "Post not found" });
-        }
-        await deletePostService(req.params.id, req.user.id);
-        return res.status(200).json({ message: "Post deleted successfully" });
-    } catch (error) {
-        if (error.message === "Post not found") {
-            return res.status(404).json({ error: error.message });
-        }
-        if (error.message === "Not authorized to delete this post") {
-            return res.status(403).json({ error: error.message });
-        }
-        return res.status(500).json({ error: "Something went wrong" });
-    }
+    await deletePostService(requireValidId(req.params.id), req.user);
+    return sendSuccess(res, 200);
+};
+
+export const getRevisions = async (req, res) => {
+    const { revisions, pagination } = await listRevisions(requireValidId(req.params.id), req.user, parsePagination(req.query));
+    return sendSuccess(res, 200, { revisions }, { pagination });
+};
+
+export const getRevisionByVersion = async (req, res) => {
+    const revision = await getRevision(requireValidId(req.params.id), requireValidId(req.params.version, "Revision"), req.user);
+    return sendSuccess(res, 200, { revision });
+};
+
+export const compare = async (req, res) => {
+    const { from, to } = parseQuery(compareQuerySchema, req.query);
+    const comparison = await compareRevisions(requireValidId(req.params.id), req.user, from, to);
+    return sendSuccess(res, 200, { comparison });
+};
+
+export const restore = async (req, res) => {
+    const id = requireValidId(req.params.id);
+    await restoreRevision(id, requireValidId(req.params.version, "Revision"), req.user, requestContext(req));
+    const post = await getPostByIdService(id, req.user);
+    return sendSuccess(res, 200, { post });
 };

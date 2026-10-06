@@ -1,3 +1,7 @@
 .env
 node_modules/
 request.http
+.DS_Store
+coverage/
+*.log
+uploads/

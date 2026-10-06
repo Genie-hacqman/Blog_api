@@ -1,46 +1,12 @@
-import { registerUser, loginUser } from "../services/userService.js";
-import { createUserSchema } from "../schemas/userSchemas.js";
-import { revokeToken } from "../utils/tokenStore.js";
+import { becomeAuthor as becomeAuthorService } from "../services/userService.js";
+import { requestContext } from "../utils/requestContext.js";
+import { sendSuccess } from "../utils/response.js";
 
-// controller function to handle user registration
-export const register = async (req, res) => {
+// Express 5 forwards rejected promises to the error handler, so controllers need no try/catch.
+// Register / login / logout live in authController.js.
 
-    try {
-        const createdUser = await registerUser(req.body);
-        return res.status(201).json({ message: "User created successfully", user: createdUser });
-
-    } catch (error) {
-        if (error.message === "Email is already taken" || error.message === "Username is already taken") {
-            return res.status(409).json({ error: error.message });
-        }
-        return res.status(500).json({ error: "Something went wrong" });
-    }
-};
-
-// controller for handling user login
-export const login = async (req, res) => {
-    try{
-        // call the service to authenticate the user
-        const {user, token} = await loginUser(req.body);
-        return res.status(200).json({ message: "User logged in successfully", user, token });
-
-    } catch (error) {
-        if (error.message === "Invalid email or password") {
-            return res.status(401).json({ error: error.message });
-        }
-        return res.status(500).json({ error: "Something went wrong" });
-
-    }
-};
-
-
-
-// controller for handling user logout
-export const logout = async (req, res) => {
-    try {
-        revokeToken(req.token);
-        return res.status(200).json({ message: "User logged out successfully" });
-    } catch (error) {
-        return res.status(500).json({ error: "Something went wrong" });
-    }
+// controller for the self-service "start writing" upgrade
+export const becomeAuthor = async (req, res) => {
+    const user = await becomeAuthorService(req.user.id, requestContext(req));
+    return sendSuccess(res, 200, { user });
 };

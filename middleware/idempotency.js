@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { getIdempotentResponse, saveIdempotentResponse } from "../utils/idempotencyStore.js";
+import { ConflictError } from "../utils/AppError.js";
 
 const hashBody = (body) => createHash("sha256").update(JSON.stringify(body)).digest("hex");
 
@@ -18,7 +19,7 @@ export const idempotent = () => (req, res, next) => {
 
     if (cached) {
         if (cached.requestHash !== requestHash) {
-            return res.status(409).json({ error: "Idempotency-Key has already been used with a different request body" });
+            return next(new ConflictError("Idempotency-Key has already been used with a different request body"));
         }
         return res.status(cached.status).json(cached.body);
     }

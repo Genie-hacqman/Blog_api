@@ -1,62 +1,38 @@
-import { findUserById, findUserByUsername, findUserByEmail,createUser } from "../repositories/userRepository.js";
-import { createUserSchema, loginUserSchema } from "../schemas/userSchemas.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { findUserById, updateUserById } from "../repositories/userRepository.js";
+import { recordAudit } from "./auditService.js";
+import { env } from "../config/env.js";
+import { avatarUrlOf } from "../utils/author.js";
+import { AppError, NotFoundError } from "../utils/AppError.js";
 
-
-// sanitize new user data
-const sanitizeUser = (user) => ({
+// shape of a user in API responses (never includes the password hash)
+export const sanitizeUser = (user) => ({
     id: user.id,
     firstName: user.firstName,
     lastName: user.lastName,
     userName: user.username,
     email: user.email,
+    role: user.role,
+    emailVerified: Boolean(user.emailVerifiedAt),
+    bio: user.bio ?? null,
+    socialLinks: user.socialLinks ?? null,
+    avatarUrl: avatarUrlOf(user),
     createAt: user.createdAt,
 });
 
-// register a new user
-export const registerUser = async ({firstName, lastName, userName, email, password}) =>  {
-
-// check if user with the same email or userName already exists
-
-    const isEmailTaken = await findUserByEmail(email);
-    const isUsernameTaken = await findUserByUsername(userName);
-    if (isEmailTaken) {
-        throw new Error("Email is already taken");
+// self-service upgrade from "user" to "author": the one role change a person can make for themselves
+export const becomeAuthor = async (userId, context) => {
+    const user = await findUserById(userId, { withAvatar: true });
+    if (!user) {
+        throw new NotFoundError("User not found");
     }
-    if (isUsernameTaken) {
-        throw new Error("Username is already taken");
+    if (user.role !== "user") {
+        return sanitizeUser(user);
     }
-
-const SALT_ROUNDS = 10;
-
-// hash the password 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-    password = hashedPassword;
-
-
-// create a new user
-    const newUser = await createUser({firstName, lastName, username: userName, email, password:hashedPassword});
-    return sanitizeUser(newUser);
-};
-
-
-// login a user
-
-export const loginUser = async ({email, password}) => {
-
-    const user = await findUserByEmail(email);
-
-    if (!user || !await bcrypt.compare(password, user.password)) {
-        throw new Error("Invalid email or password");
-
+    if (env.REQUIRE_VERIFIED_EMAIL && !user.emailVerifiedAt) {
+        throw new AppError(403, "EMAIL_NOT_VERIFIED", "Verify your email address to become an author");
     }
 
-    const token = jwt.sign(
-        {id: user.id, username: user.username, email: user.email},
-        process.env.JWT_SECRET,
-        {expiresIn: "1d"}
-    
-);
-    return {user: sanitizeUser(user), token};
+    await updateUserById(userId, { role: "author" });
+    await recordAudit({ actorId: userId, action: "user.became_author", entityType: "user", entityId: userId, metadata: { from: "user", to: "author" } }, { context });
+    return sanitizeUser({ ...user.get(), role: "author" });
 };

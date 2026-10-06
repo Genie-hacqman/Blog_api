@@ -18,7 +18,7 @@ describe("idempotency", () => {
 
     beforeEach(async () => {
         await resetDatabase();
-        user = await registerAndLogin();
+        user = await registerAndLogin({ role: "editor" });
     });
 
     it("replays the first response instead of creating a duplicate", async () => {
@@ -27,10 +27,10 @@ describe("idempotency", () => {
 
         assert.equal(first.status, 201);
         assert.equal(second.status, 201);
-        assert.equal(second.body.post.id, first.body.post.id);
+        assert.equal(second.body.data.post.id, first.body.data.post.id);
 
         const list = await request(app).get("/api/posts");
-        assert.equal(list.body.posts.length, 1);
+        assert.equal(list.body.data.posts.length, 1);
     });
 
     it("rejects the same key used with a different body", async () => {
@@ -43,12 +43,12 @@ describe("idempotency", () => {
 
         assert.equal(response.status, 409);
         assert.equal(
-            response.body.error,
+            response.body.error.message,
             "Idempotency-Key has already been used with a different request body"
         );
 
         const list = await request(app).get("/api/posts");
-        assert.equal(list.body.posts.length, 1);
+        assert.equal(list.body.data.posts.length, 1);
     });
 
     it("scopes keys per user so two users can reuse the same key string", async () => {
@@ -62,8 +62,8 @@ describe("idempotency", () => {
 
         assert.equal(mine.status, 201);
         assert.equal(theirs.status, 201);
-        assert.notEqual(theirs.body.post.id, mine.body.post.id);
-        assert.equal(theirs.body.post.author.id, other.user.id);
+        assert.notEqual(theirs.body.data.post.id, mine.body.data.post.id);
+        assert.equal(theirs.body.data.post.author.id, other.user.id);
     });
 
     it("creates separate posts when no idempotency key is sent", async () => {
@@ -77,9 +77,9 @@ describe("idempotency", () => {
             .set("Authorization", `Bearer ${user.token}`)
             .send(body);
 
-        assert.notEqual(second.body.post.id, first.body.post.id);
+        assert.notEqual(second.body.data.post.id, first.body.data.post.id);
 
         const list = await request(app).get("/api/posts");
-        assert.equal(list.body.posts.length, 2);
+        assert.equal(list.body.data.posts.length, 2);
     });
 });
